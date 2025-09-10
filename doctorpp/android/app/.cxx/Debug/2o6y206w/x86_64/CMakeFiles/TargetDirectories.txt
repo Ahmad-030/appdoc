@@ -1,0 +1,2 @@
+E:/doctorpp/android/app/.cxx/Debug/2o6y206w/x86_64/CMakeFiles/edit_cache.dir
+E:/doctorpp/android/app/.cxx/Debug/2o6y206w/x86_64/CMakeFiles/rebuild_cache.dir
