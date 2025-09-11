@@ -11,7 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../../AdminPanel/controller/acceptedAppointmentController.dart';
+import '../../ahmadswork/chat_ui.dart';
 import '../../controllerclass/getdoctordetails.dart';
 
 class Homebody extends StatefulWidget {
@@ -21,13 +22,14 @@ class Homebody extends StatefulWidget {
 
 class _HomebodyState extends State<Homebody> {
   final GetDoctorDetails controller = Get.put(GetDoctorDetails());
+  final AcceptedAppointmentController appointmentController =
+  Get.put(AcceptedAppointmentController()); // ✅ added
 
   @override
   void initState() {
     super.initState();
     controller.fetchDoctorDetails();
 
-    // Delay permission check until after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCameraPermissionOnce();
     });
@@ -44,7 +46,6 @@ class _HomebodyState extends State<Homebody> {
         _showPermissionDialog();
       }
 
-      // ✅ Mark as checked so dialog shows only once
       await prefs.setBool('cameraPermissionChecked', true);
     }
   }
@@ -68,7 +69,7 @@ class _HomebodyState extends State<Homebody> {
   Future<void> _showPermissionDialog() async {
     showDialog(
       context: context,
-      barrierDismissible: false, // user must choose
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return Center(
           child: ClipRRect(
@@ -79,10 +80,10 @@ class _HomebodyState extends State<Homebody> {
                 width: MediaQuery.of(dialogContext).size.width * 0.85,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15), // glass effect
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3), // frosted border
+                    color: Colors.white.withOpacity(0.3),
                     width: 1.5,
                   ),
                   boxShadow: [
@@ -235,26 +236,22 @@ class _HomebodyState extends State<Homebody> {
                     ),
                     SizedBox(height: screenHeight * 0.015),
                     Obx(() {
+                      bool accepted = appointmentController.isAccepted.value;
+
                       return CustomContainer(
                         onpressed: () {
-                          Get.to(Aboutdoctor());
+                          if (accepted) {
+                            Get.to(() => ChatScreen()); // ✅ WhatsApp -> Chat
+                          } else {
+                            Get.to(() => Aboutdoctor());
+                          }
                         },
                         height: screenHeight * 0.08,
-                        color: controller.isLoading.value
-                            ? Colors.grey
-                            : customBlue,
-                        text: 'About Doctor',
+                        color: accepted ? customBlue : customBlue,
+                        text: accepted ? 'Whatsapp' : 'About Doctor',
                         textColor: Colors.white,
                       );
                     }),
-                    SizedBox(height: screenHeight * 0.015),
-                    CustomContainer(
-                      onpressed: () {},
-                      height: screenHeight * 0.08,
-                      color: Colors.grey,
-                      text: 'Whatsapp',
-                      textColor: Colors.white,
-                    ),
                   ],
                 ),
               ),

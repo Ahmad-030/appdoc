@@ -9,6 +9,7 @@ import '../../StorageServiceClass/storageservice.dart';
 class AcceptedAppointmentController extends GetxController {
   var appointments = <Appointment>[].obs;
   var isLoading = true.obs;
+  var isAccepted = false.obs; // ✅ Added this observable
   final storage = StorageService();
   Timer? _timer;
 
@@ -22,7 +23,6 @@ class AcceptedAppointmentController extends GetxController {
       fetchAcceptedAppointments();
     });
   }
-
 
   @override
   void onClose() {
@@ -66,12 +66,17 @@ class AcceptedAppointmentController extends GetxController {
 
         appointments.value = sorted;
 
-        appointments.value = sorted;
+        // ✅ Update acceptance state
+        isAccepted.value = appointments.isNotEmpty;
       } else {
-        Get.snackbar("Error",
-            "Failed to fetch accepted appointments: ${response.statusCode}");
+        isAccepted.value = false;
+        Get.snackbar(
+          "Error",
+          "Failed to fetch accepted appointments: ${response.statusCode}",
+        );
       }
     } catch (e) {
+      isAccepted.value = false;
       Get.snackbar("Error", "An error occurred: $e");
     } finally {
       isLoading.value = false;

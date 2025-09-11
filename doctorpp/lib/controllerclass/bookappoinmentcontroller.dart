@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 class BookAppointmentController extends GetxController {
   final isLoading = false.obs;
+  final isAccepted = false.obs; // ✅ Track appointment acceptance
   final _box = GetStorage();
 
   Future<void> bookAppointment({
@@ -22,17 +23,13 @@ class BookAppointmentController extends GetxController {
   }) async {
     isLoading.value = true;
     String? token = _box.read("auth_token");
-    final url = Uri.parse("https://doctor-appointment-xi-azure.vercel.app/api/v1/appointments");
+
+    final url = Uri.parse(
+        "https://doctor-appointment-xi-azure.vercel.app/api/v1/appointments");
 
     final body = {
-      "startTime": {
-        "hour": startHour,
-        "minute": startMinute,
-      },
-      "endTime": {
-        "hour": endHour,
-        "minute": endMinute,
-      },
+      "startTime": {"hour": startHour, "minute": startMinute},
+      "endTime": {"hour": endHour, "minute": endMinute},
       "appointmentDate": appointmentDate,
       "address": address,
       "phone": phone,
@@ -55,6 +52,14 @@ class BookAppointmentController extends GetxController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
+
+        // ✅ Check appointment status in response
+        if (data["status"] == "accepted") {
+          isAccepted.value = true;
+        } else {
+          isAccepted.value = false;
+        }
+
         Get.snackbar(
           "Success",
           "Appointment Booked Successfully",
@@ -64,7 +69,10 @@ class BookAppointmentController extends GetxController {
         );
       } else {
         final errorData = jsonDecode(response.body);
-        String errorMessage = errorData["error"] ?? "Failed to book appointment";
+        String errorMessage =
+            errorData["error"] ?? "Failed to book appointment";
+
+        isAccepted.value = false; // keep as not accepted on error
 
         Get.snackbar(
           "Error",
@@ -76,6 +84,8 @@ class BookAppointmentController extends GetxController {
       }
     } catch (e) {
       isLoading.value = false;
+      isAccepted.value = false; // reset on failure
+
       Get.snackbar(
         "Error",
         "An error occurred",
