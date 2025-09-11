@@ -5,6 +5,7 @@ import 'package:doctorappflutter/constant/constantfile.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../ahmadswork/Pending_approval.dart';
 import '../../controllerclass/bookappoinmentcontroller.dart';
 import '../../controllerclass/getdoctordetails.dart';
 
@@ -32,6 +33,13 @@ class _DocappoinmentbodyState extends State<Docappoinmentbody> {
   void initState() {
     super.initState();
     controller.fetchDoctorDetails();
+
+    // ✅ Listen to booking state changes once
+    ever(appointmentController.isBooked, (booked) {
+      if (booked == true) {
+        Get.offAll(() => PendingApprovalScreen()); // Navigate to pending screen
+      }
+    });
   }
 
   List<DateTime> getNextThreeWeekdays(String targetDay) {
@@ -206,6 +214,7 @@ class _DocappoinmentbodyState extends State<Docappoinmentbody> {
                   ),
                 ),
               ),
+              // --- Days Selector & Time Picker ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: SizedBox(
@@ -283,7 +292,7 @@ class _DocappoinmentbodyState extends State<Docappoinmentbody> {
                     ),
                   ),
                 ),
-              if (selectedDay != null)
+              if (selectedDay != null && selectedDate != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 15.0),
                   child: Container(
@@ -326,6 +335,7 @@ class _DocappoinmentbodyState extends State<Docappoinmentbody> {
                     ),
                   ),
                 ),
+              // --- Send Appointment Button ---
               Padding(
                 padding: const EdgeInsets.all(15.0),
                 child: CustomButton(
@@ -339,25 +349,26 @@ class _DocappoinmentbodyState extends State<Docappoinmentbody> {
                         selectedDate == null) {
                       Get.snackbar("Error", "Please fill all required fields.",
                           backgroundColor: Colors.red, colorText: Colors.white);
-                    } else {
-                      final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
-                      final timeParts = selectedTime?.split(" - ");
-                      final start = parseTime(timeParts![0]);
-                      final end = parseTime(timeParts[1]);
-
-                      appointmentController.bookAppointment(
-                        firstName: _firstnamefield.text,
-                        lastName: _lastnamefield.text,
-                        phone: _phonefield.text,
-                        address: _addressfield.text,
-                        appointmentDate: formattedDate,
-                        startHour: start["hour"]!,
-                        startMinute: start["minute"]!,
-                        endHour: end["hour"]!,
-                        endMinute: end["minute"]!,
-                        appointmentType: selectedStatus!,
-                      );
+                      return;
                     }
+
+                    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
+                    final timeParts = selectedTime?.split(" - ");
+                    final start = parseTime(timeParts![0]);
+                    final end = parseTime(timeParts[1]);
+
+                    appointmentController.bookAppointment(
+                      firstName: _firstnamefield.text,
+                      lastName: _lastnamefield.text,
+                      phone: _phonefield.text,
+                      address: _addressfield.text,
+                      appointmentDate: formattedDate,
+                      startHour: start["hour"]!,
+                      startMinute: start["minute"]!,
+                      endHour: end["hour"]!,
+                      endMinute: end["minute"]!,
+                      appointmentType: selectedStatus!,
+                    );
                   },
                 ),
               ),

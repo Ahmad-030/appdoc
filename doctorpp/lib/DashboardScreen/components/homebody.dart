@@ -1,17 +1,19 @@
 import 'dart:ui';
-import 'package:doctorappflutter/Auth/signinComponents/similar/headerdesign.dart';
 import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/aboutdoctor.dart';
 import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/medicinedetails.dart';
 import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/reportsdetails.dart';
 import 'package:doctorappflutter/DashboardScreen/components/homedoctor/doctor.dart';
 import 'package:doctorappflutter/DashboardScreen/components/similardesign/containerdesing.dart';
 import 'package:doctorappflutter/DashboardScreen/components/similardesign/homecards.dart';
+import 'package:doctorappflutter/ahmadswork/Pending_approval.dart';
 import 'package:doctorappflutter/constant/constantfile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../AdminPanel/controller/acceptedAppointmentController.dart';
+import '../../Auth/signinComponents/similar/headerdesign.dart';
 import '../../ahmadswork/chat_ui.dart';
 import '../../controllerclass/getdoctordetails.dart';
 
@@ -23,15 +25,29 @@ class Homebody extends StatefulWidget {
 class _HomebodyState extends State<Homebody> {
   final GetDoctorDetails controller = Get.put(GetDoctorDetails());
   final AcceptedAppointmentController appointmentController =
-  Get.put(AcceptedAppointmentController()); // ✅ added
+  Get.put(AcceptedAppointmentController());
 
   @override
   void initState() {
     super.initState();
     controller.fetchDoctorDetails();
+    appointmentController.fetchAcceptedAppointments();
+
+    // Set status bar color
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: customBlue,
+      statusBarIconBrightness: Brightness.light,
+    ));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCameraPermissionOnce();
+    });
+
+    // Listen for approval changes
+    ever(appointmentController.isAccepted, (accepted) {
+      if (accepted == true) {
+        print("Appointment approved, UI updated to show WhatsApp button");
+      }
     });
   }
 
@@ -41,29 +57,25 @@ class _HomebodyState extends State<Homebody> {
 
     if (!alreadyChecked) {
       bool cameraGranted = await Permission.camera.isGranted;
-
       if (!cameraGranted && mounted) {
         _showPermissionDialog();
       }
-
       await prefs.setBool('cameraPermissionChecked', true);
     }
   }
 
   Future<void> _requestCameraPermission() async {
     var camera = await Permission.camera.request();
-
     if (!mounted) return;
-
-    if (camera.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Camera permission granted ✅")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Camera permission denied ❌")),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          camera.isGranted
+              ? "Camera permission granted ✅"
+              : "Camera permission denied ❌",
+        ),
+      ),
+    );
   }
 
   Future<void> _showPermissionDialog() async {
@@ -83,16 +95,7 @@ class _HomebodyState extends State<Homebody> {
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                      color: Colors.white.withOpacity(0.3), width: 1.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -103,10 +106,9 @@ class _HomebodyState extends State<Homebody> {
                     const Text(
                       "Permission Required",
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
@@ -123,26 +125,20 @@ class _HomebodyState extends State<Homebody> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.withOpacity(0.6),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                                borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 24, vertical: 12),
                             elevation: 0,
                           ),
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                          },
-                          child: const Text(
-                            "Deny",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text("Deny",
+                              style: TextStyle(color: Colors.white)),
                         ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.withOpacity(0.6),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                                borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 24, vertical: 12),
                             elevation: 0,
@@ -151,10 +147,8 @@ class _HomebodyState extends State<Homebody> {
                             Navigator.of(dialogContext).pop();
                             await _requestCameraPermission();
                           },
-                          child: const Text(
-                            "Allow",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          child: const Text("Allow",
+                              style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -168,97 +162,104 @@ class _HomebodyState extends State<Homebody> {
     );
   }
 
+  Widget _pendingApprovalScreen(double screenHeight, double screenWidth) {
+    return PendingApprovalScreen();
+  }
+
+  Widget _homeBody(double screenHeight, double screenWidth, bool accepted) {
+    return Column(
+      children: [
+        Headerdesign(),
+        Expanded(
+          flex: 1,
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  child: Homecards(
+                    text: 'Reports',
+                    imagePath: 'assets/images/result.png',
+                    onpressed: () => Get.to(ReportsDetails()),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  child: Homecards(
+                    text: 'Medicine',
+                    imagePath: 'assets/images/medicine.png',
+                    onpressed: () => Get.to(Medicinedetails()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              child: Column(
+                children: [
+                  Container(
+                    height: screenHeight * 0.3,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: Offset(0, 3)),
+                      ],
+                    ),
+                    child: Doctor(),
+                  ),
+                  SizedBox(height: screenHeight * 0.015),
+                  CustomContainer(
+                    onpressed: () {
+                      if (accepted) {
+                        Get.to(() => ChatScreen());
+                      } else {
+                        Get.to(() => Aboutdoctor());
+                      }
+                    },
+                    height: screenHeight * 0.08,
+                    color: customBlue,
+                    text: accepted ? 'Whatsapp' : 'About Doctor',
+                    textColor: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return Container(
-      color: Colors.white,
-      height: double.infinity,
-      width: double.infinity,
-      child: Column(
-        children: [
-          Headerdesign(),
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(screenWidth * 0.04),
-                    child: Homecards(
-                      text: 'Reports',
-                      imagePath: 'assets/images/result.png',
-                      onpressed: () {
-                        Get.to(ReportsDetails());
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(screenWidth * 0.04),
-                    child: Homecards(
-                      text: 'Medicine',
-                      imagePath: 'assets/images/medicine.png',
-                      onpressed: () {
-                        Get.to(Medicinedetails());
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(screenWidth * 0.04),
-                child: Column(
-                  children: [
-                    Container(
-                      height: screenHeight * 0.3,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Doctor(),
-                    ),
-                    SizedBox(height: screenHeight * 0.015),
-                    Obx(() {
-                      bool accepted = appointmentController.isAccepted.value;
+    return Obx(() {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        // You can still keep your bottomNavigationBar here if needed
+        // bottomNavigationBar: BottomNavWidget(),
 
-                      return CustomContainer(
-                        onpressed: () {
-                          if (accepted) {
-                            Get.to(() => ChatScreen()); // ✅ WhatsApp -> Chat
-                          } else {
-                            Get.to(() => Aboutdoctor());
-                          }
-                        },
-                        height: screenHeight * 0.08,
-                        color: accepted ? customBlue : customBlue,
-                        text: accepted ? 'Whatsapp' : 'About Doctor',
-                        textColor: Colors.white,
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+        body: appointmentController.isAccepted.value
+            ? _homeBody(screenHeight, screenWidth, true)
+            : (appointmentController.appointments.isNotEmpty &&
+            !appointmentController.isAccepted.value
+            ? _pendingApprovalScreen(screenHeight, screenWidth)
+            : _homeBody(screenHeight, screenWidth, false)),
+      );
+    });
   }
 }

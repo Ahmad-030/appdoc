@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 class BookAppointmentController extends GetxController {
   final isLoading = false.obs;
   final isAccepted = false.obs; // ✅ Track appointment acceptance
+  final isBooked = false.obs;   // ✅ Track if appointment is booked
   final _box = GetStorage();
 
   Future<void> bookAppointment({
@@ -53,12 +54,15 @@ class BookAppointmentController extends GetxController {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
 
-        // ✅ Check appointment status in response
+        // ✅ Update acceptance status if API provides it
         if (data["status"] == "accepted") {
           isAccepted.value = true;
         } else {
           isAccepted.value = false;
         }
+
+        // ✅ Mark as booked immediately
+        isBooked.value = true;
 
         Get.snackbar(
           "Success",
@@ -72,25 +76,27 @@ class BookAppointmentController extends GetxController {
         String errorMessage =
             errorData["error"] ?? "Failed to book appointment";
 
-        isAccepted.value = false; // keep as not accepted on error
+        isAccepted.value = false;
+        isBooked.value = false;
 
         Get.snackbar(
           "Error",
           errorMessage,
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.red,
           colorText: Colors.white,
         );
       }
     } catch (e) {
       isLoading.value = false;
-      isAccepted.value = false; // reset on failure
+      isAccepted.value = false;
+      isBooked.value = false;
 
       Get.snackbar(
         "Error",
         "An error occurred",
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
       print("Exception: $e");
