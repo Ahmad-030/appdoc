@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "141247023943",
+    "firebase_url": "https://backandbody-14fdd-default-rtdb.firebaseio.com",
+    "project_id": "backandbody-14fdd",
+    "storage_bucket": "backandbody-14fdd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:141247023943:android:b2cb40519933aba6ef5a62",
+        "android_client_info": {
+          "package_name": "com.example.doctorappflutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKtLbJI197Y75YwL2W9zqQcMzGWvxey_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
