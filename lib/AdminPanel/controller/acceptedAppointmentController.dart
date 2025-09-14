@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_database/firebase_database.dart';
 
 import '../../Model/appoinment.dart';
 import '../../StorageServiceClass/storageservice.dart';
@@ -9,9 +10,12 @@ import '../../StorageServiceClass/storageservice.dart';
 class AcceptedAppointmentController extends GetxController {
   var appointments = <Appointment>[].obs;
   var isLoading = true.obs;
-  var isAccepted = false.obs; // ✅ Added this observable
+  var isAccepted = false.obs;
   final storage = StorageService();
   Timer? _timer;
+
+  // ✅ Firebase reference
+  final DatabaseReference dbRef = FirebaseDatabase.instance.ref();
 
   @override
   void onInit() {
@@ -60,14 +64,41 @@ class AcceptedAppointmentController extends GetxController {
                 .add(Duration(hours: a.startHour, minutes: a.startMinute));
             final dateB = DateTime.parse(b.appointmentDate)
                 .add(Duration(hours: b.startHour, minutes: b.startMinute));
-
-            return dateA.compareTo(dateB); // nearest upcoming first
+            return dateA.compareTo(dateB);
           });
 
         appointments.value = sorted;
-
-        // ✅ Update acceptance state
         isAccepted.value = appointments.isNotEmpty;
+
+        // ✅ Sync to Firebase
+        for (var appointment in sorted) {
+          await dbRef
+              .child("appointments")
+              .child(appointment.id)
+              .set({
+            "appointmentId": appointment.id,
+            "patientFirstName": appointment.firstName,
+            "patientLastName": appointment.lastName,
+            "phone": appointment.phone,
+            "address": appointment.address,
+            "appointmentType": appointment.appointmentType,
+            "appointmentDate": appointment.appointmentDate,
+            "startHour": appointment.startHour,
+            "startMinute": appointment.startMinute,
+            "endHour": appointment.endHour,
+            "endMinute": appointment.endMinute,
+            "status": appointment.status,
+            "doctorFirstName": appointment.doctorFirstName,
+            "doctorLastName": appointment.doctorLastName,
+            "doctorEmail": appointment.doctorEmail,
+            "createdAt": appointment.createdAt,
+            "updatedAt": appointment.updatedAt,
+            "syncedAt": DateTime.now().toIso8601String(), // extra tracking
+          }).then((_) {
+            print("✅ Synced appointment ${appointment.id} to Firebase");
+          });
+        }
+
       } else {
         isAccepted.value = false;
         Get.snackbar(
