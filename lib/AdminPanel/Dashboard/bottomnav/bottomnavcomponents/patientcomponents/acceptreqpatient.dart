@@ -1,3 +1,4 @@
+import 'package:doctorappflutter/chat/doctor%20side/Patient%20list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
@@ -16,148 +17,187 @@ class Acceptreqpatient extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final appointments = controller.appointments;
+    return Stack(
+      children: [
+        // Appointment list
+        Obx(() {
+          final appointments = controller.appointments;
 
-      // Shimmer loader
-      if (controller.isLoading.value) {
-        return ListView.builder(
-          itemCount: 4,
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Shimmer.fromColors(
-              baseColor: Colors.grey.shade300,
-              highlightColor: Colors.grey.shade100,
-              child: Container(
-                height: 155,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+          // Loading shimmer
+          if (controller.isLoading.value) {
+            return ListView.builder(
+              itemCount: 4,
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Shimmer.fromColors(
+                  baseColor: Colors.grey.shade300,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    height: 155,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        );
-      }
+            );
+          }
 
-      // No data
-      if (appointments.isEmpty) {
-        return const Center(
-          child: Text(
-            'No accepted appointments found.',
-            style: TextStyle(fontFamily: 'Poppins'),
-          ),
-        );
-      }
+          // No appointments
+          if (appointments.isEmpty) {
+            return const Center(
+              child: Text(
+                'No accepted appointments found.',
+                style: TextStyle(fontFamily: 'Poppins'),
+              ),
+            );
+          }
 
-      // Appointment list (already sorted latest on top in controller 🔥)
-      return ListView.builder(
-        itemCount: appointments.length,
-        itemBuilder: (BuildContext context, int index) {
-          final appointment = appointments[index];
-          final date = DateTime.parse(appointment.appointmentDate);
-          final dayName = DateFormat('EEEE').format(date);
+          // Appointment list
+          return ListView.builder(
+            itemCount: appointments.length,
+            itemBuilder: (BuildContext context, int index) {
+              final appointment = appointments[index];
+              final date = DateTime.parse(appointment.appointmentDate);
+              final dayName = DateFormat('EEEE').format(date);
 
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GestureDetector(
-              onTap: () => _showPatientDetailsDialog(context, appointment),
-              child: Container(
-                height: 155,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 5,
-                      offset: const Offset(2, 2),
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: GestureDetector(
+                  onTap: () => _showPatientDetailsDialog(context, appointment),
+                  child: Container(
+                    height: 155,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 5,
+                          offset: const Offset(2, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Container(
-                        height: 65,
-                        width: 65,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          image: const DecorationImage(
-                            image: AssetImage('assets/images/doctorimage.jpg'),
-                            fit: BoxFit.cover,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20),
+                          child: Container(
+                            height: 65,
+                            width: 65,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              image: const DecorationImage(
+                                image: AssetImage('assets/images/doctorimage.jpg'),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "${appointment.firstName} ${appointment.lastName}",
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              appointment.appointmentType,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: customBlue,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            RichText(
-                              text: TextSpan(
-                                text:
-                                'Appointment: ${_formatTime(appointment.startHour, appointment.startMinute)} To ${_formatTime(appointment.endHour, appointment.endMinute)} ',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                  fontFamily: 'Poppins',
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text:
-                                    "($dayName, ${appointment.appointmentDate.split("T")[0]})",
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${appointment.firstName} ${appointment.lastName}",
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    fontFamily: 'Poppins',
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  appointment.appointmentType,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: customBlue,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                RichText(
+                                  text: TextSpan(
+                                    text:
+                                    'Appointment: ${_formatTime(appointment.startHour, appointment.startMinute)} To ${_formatTime(appointment.endHour, appointment.endMinute)} ',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                      fontFamily: 'Poppins',
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text:
+                                        "($dayName, ${appointment.appointmentDate.split("T")[0]})",
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              );
+            },
+          );
+        }),
+
+        // Custom chat button
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: GestureDetector(
+            onTap: () {
+              Get.to(() => DoctorAppointmentsScreen());
+            },
+            child: Container(
+              height: 60,
+              width: 60,
+              decoration: BoxDecoration(
+                color: customBlue,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 5,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.chat,
+                color: Colors.white,
               ),
             ),
-          );
-        },
-      );
-    });
+          ),
+        ),
+      ],
+    );
   }
 
-  void _showPatientDetailsDialog(
-      BuildContext context, Appointment appointment) {
+  String _formatTime(int hour, int minute) {
+    final time = TimeOfDay(hour: hour, minute: minute);
+    return time.format(Get.context!);
+  }
+
+  void _showPatientDetailsDialog(BuildContext context, Appointment appointment) {
     final date = DateTime.parse(appointment.appointmentDate);
     final dayName = DateFormat('EEEE').format(date);
 
@@ -244,8 +284,7 @@ class Acceptreqpatient extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => Addmedicinetopatient()),
+                  MaterialPageRoute(builder: (context) => Addmedicinetopatient()),
                 );
               },
               child: const Text(
@@ -274,10 +313,5 @@ class Acceptreqpatient extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _formatTime(int hour, int minute) {
-    final time = TimeOfDay(hour: hour, minute: minute);
-    return time.format(Get.context!);
   }
 }

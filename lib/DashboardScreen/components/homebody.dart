@@ -1,21 +1,22 @@
 import 'dart:ui';
-import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/aboutdoctor.dart';
-import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/medicinedetails.dart';
-import 'package:doctorappflutter/DashboardScreen/DashboardDetailsScreen/reportsdetails.dart';
-import 'package:doctorappflutter/DashboardScreen/components/homedoctor/doctor.dart';
-import 'package:doctorappflutter/DashboardScreen/components/similardesign/containerdesing.dart';
-import 'package:doctorappflutter/DashboardScreen/components/similardesign/homecards.dart';
-import 'package:doctorappflutter/ahmadswork/Pending_approval.dart';
-import 'package:doctorappflutter/constant/constantfile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../AdminPanel/controller/acceptedAppointmentController.dart';
 import '../../Auth/signinComponents/similar/headerdesign.dart';
-import '../../ahmadswork/chat_ui.dart';
+import '../../chat/PatientSide/patientchatUI.dart';
 import '../../controllerclass/getdoctordetails.dart';
+import '../../DashboardScreen/components/similardesign/containerdesing.dart';
+import '../../DashboardScreen/components/similardesign/homecards.dart';
+import '../../DashboardScreen/DashboardDetailsScreen/medicinedetails.dart';
+import '../../DashboardScreen/DashboardDetailsScreen/reportsdetails.dart';
+import '../../DashboardScreen/components/homedoctor/doctor.dart';
+import '../../constant/constantfile.dart';
+import '../../ahmadswork/Pending_approval.dart';
+import '../../DashboardScreen/DashboardDetailsScreen/aboutdoctor.dart';
 
 class Homebody extends StatefulWidget {
   @override
@@ -41,13 +42,6 @@ class _HomebodyState extends State<Homebody> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCameraPermissionOnce();
-    });
-
-    // Listen for approval changes
-    ever(appointmentController.isAccepted, (accepted) {
-      if (accepted == true) {
-        print("Appointment approved, UI updated to show WhatsApp button");
-      }
     });
   }
 
@@ -94,8 +88,8 @@ class _HomebodyState extends State<Homebody> {
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.3), width: 1.5),
+                  border:
+                  Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -167,6 +161,11 @@ class _HomebodyState extends State<Homebody> {
   }
 
   Widget _homeBody(double screenHeight, double screenWidth, bool accepted) {
+    // Pick the first accepted appointment dynamically
+    final appointment = appointmentController.appointments.isNotEmpty
+        ? appointmentController.appointments.first
+        : null;
+
     return Column(
       children: [
         Headerdesign(),
@@ -220,19 +219,29 @@ class _HomebodyState extends State<Homebody> {
                     child: Doctor(),
                   ),
                   SizedBox(height: screenHeight * 0.015),
-                  CustomContainer(
-                    onpressed: () {
-                      if (accepted) {
-                        Get.to(() => ChatScreen());
-                      } else {
-                        Get.to(() => Aboutdoctor());
-                      }
-                    },
-                    height: screenHeight * 0.08,
-                    color: customBlue,
-                    text: accepted ? 'Whatsapp' : 'About Doctor',
-                    textColor: Colors.white,
-                  ),
+                  if (appointment != null)
+                    CustomContainer(
+                      onpressed: () {
+                        Get.to(() => PatientChatScreen(
+                          appointmentId: appointment.id,
+                          patientId: appointment.id,
+                          doctorName:
+                          "${appointment.doctorFirstName} ${appointment.doctorLastName}",
+                        ));
+                      },
+                      height: screenHeight * 0.08,
+                      color: customBlue,
+                      text: 'Whatsapp',
+                      textColor: Colors.white,
+                    )
+                  else
+                    CustomContainer(
+                      onpressed: () => Get.to(() => Aboutdoctor()),
+                      height: screenHeight * 0.08,
+                      color: customBlue,
+                      text: 'About Doctor',
+                      textColor: Colors.white,
+                    ),
                 ],
               ),
             ),
@@ -248,17 +257,15 @@ class _HomebodyState extends State<Homebody> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Obx(() {
+      final hasAppointment = appointmentController.appointments.isNotEmpty;
+
       return Scaffold(
         backgroundColor: Colors.white,
-        // You can still keep your bottomNavigationBar here if needed
-        // bottomNavigationBar: BottomNavWidget(),
-
-        body: appointmentController.isAccepted.value
+        body: hasAppointment
+            ? (appointmentController.isAccepted.value
             ? _homeBody(screenHeight, screenWidth, true)
-            : (appointmentController.appointments.isNotEmpty &&
-            !appointmentController.isAccepted.value
-            ? _pendingApprovalScreen(screenHeight, screenWidth)
-            : _homeBody(screenHeight, screenWidth, false)),
+            : _pendingApprovalScreen(screenHeight, screenWidth))
+            : _homeBody(screenHeight, screenWidth, false),
       );
     });
   }
