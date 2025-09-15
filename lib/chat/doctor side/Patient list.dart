@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../../constant/constantfile.dart';
 import '../Contollers/Doc_Chat_Controller.dart';
 import 'docchatscreen.dart';
@@ -38,7 +37,7 @@ class DoctorAppointmentsScreen extends StatelessWidget {
           );
         }
 
-        // Show latest first
+        // show latest appointments first
         final reversedAppointments = controller.appointments.reversed.toList();
 
         return ListView.builder(
@@ -60,10 +59,12 @@ class DoctorAppointmentsScreen extends StatelessWidget {
                   final sortedMsgs = msgs.entries.map((e) {
                     final m = Map<String, dynamic>.from(e.value);
                     return {
+                      "id": e.key,
                       "text": m["text"] ?? "",
                       "timestamp": DateTime.tryParse(m["timestamp"] ?? "") ??
                           DateTime.now(),
                       "senderId": m["senderId"] ?? "",
+                      "seen": m["seen"] ?? false,
                     };
                   }).toList()
                     ..sort((a, b) =>
@@ -71,13 +72,26 @@ class DoctorAppointmentsScreen extends StatelessWidget {
                             .compareTo(a["timestamp"] as DateTime));
 
                   if (sortedMsgs.isNotEmpty) {
-                    lastMessage = sortedMsgs.first["text"];
-                    hasNewMessage = true; // Here you can add logic for unread
+                    final latest = sortedMsgs.first;
+                    lastMessage = latest["text"];
+
+                    // only show notification if latest is from patient & not seen
+                    if (latest["senderId"] != controller.doctorId &&
+                        latest["seen"] == false) {
+                      hasNewMessage = true;
+                    }
                   }
                 }
 
                 return GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // ✅ Mark messages as seen when doctor opens chat
+                    await controller.markMessagesAsSeen(
+                      appointment.appointmentId,
+                      controller.doctorId,
+                    );
+
+                    // then navigate to chat
                     Get.to(() => ChatScreen(
                       appointmentId: appointment.appointmentId,
                       patientName: appointment.patientName,
@@ -86,8 +100,8 @@ class DoctorAppointmentsScreen extends StatelessWidget {
                   },
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),

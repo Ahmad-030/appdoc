@@ -8,11 +8,13 @@ class ChatMessage {
   final String senderId;
   final String text;
   final DateTime timestamp;
+  final bool seen;
 
   ChatMessage({
     required this.senderId,
     required this.text,
     required this.timestamp,
+    required this.seen,
   });
 }
 
@@ -39,7 +41,7 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
 
   Future<void> _refreshMessages() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {}); // force refresh (not really needed since Firebase is realtime)
+    setState(() {}); // Firebase updates automatically
   }
 
   void _scrollToBottom() {
@@ -61,7 +63,7 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
         backgroundColor: customBlue,
         shadowColor: customBlue.withOpacity(0.4),
         title: Text(
-          "Chat with Dr. ${widget.doctorName}",
+          "Chat with ${widget.doctorName}",
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -98,6 +100,7 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
                       text: m["text"] ?? "",
                       timestamp: DateTime.tryParse(m["timestamp"] ?? "") ??
                           DateTime.now(),
+                      seen: m["seen"] ?? false,
                     );
                   }).toList()
                     ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -135,13 +138,47 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
                               ),
                             ],
                           ),
-                          child: Text(
-                            message.text,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: isPatient ? Colors.white : Colors.black87,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                message.text,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: isPatient ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: isPatient
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                  if (isPatient) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      message.seen
+                                          ? Icons.done_all
+                                          : Icons.done,
+                                      size: 16,
+                                      color: message.seen
+                                          ? Colors.lightBlueAccent
+                                          : (isPatient
+                                          ? Colors.white70
+                                          : Colors.black54),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       );
