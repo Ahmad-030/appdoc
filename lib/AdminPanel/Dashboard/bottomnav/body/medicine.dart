@@ -9,11 +9,11 @@ class Medicine extends StatefulWidget {
 
 class _MedicineState extends State<Medicine> {
   final List<Map<String, String>> users = [
-    {'image': 'assets/images/splashscreen.png', 'name': 'Alice', 'subtitle': 'Physical'},
-    {'image': 'assets/images/splashscreen.png', 'name': 'Bob', 'subtitle': 'Online'},
-    {'image': 'assets/images/splashscreen.png', 'name': 'Charlie', 'subtitle': 'Physical'},
-    {'image': 'assets/images/splashscreen.png', 'name': 'Diana', 'subtitle': 'Online'},
-    {'image': 'assets/images/splashscreen.png', 'name': 'Eve', 'subtitle': 'Physical'},
+    {'image': 'assets/images/splashscreen.png', 'name': 'Alice', 'subtitle': 'Physical', 'appointmentId': 'A1'},
+    {'image': 'assets/images/splashscreen.png', 'name': 'Bob', 'subtitle': 'Online', 'appointmentId': 'B2'},
+    {'image': 'assets/images/splashscreen.png', 'name': 'Charlie', 'subtitle': 'Physical', 'appointmentId': 'C3'},
+    {'image': 'assets/images/splashscreen.png', 'name': 'Diana', 'subtitle': 'Online', 'appointmentId': 'D4'},
+    {'image': 'assets/images/splashscreen.png', 'name': 'Eve', 'subtitle': 'Physical', 'appointmentId': 'E5'},
   ];
 
   List<Map<String, String>> filteredUsers = [];
@@ -43,7 +43,7 @@ class _MedicineState extends State<Medicine> {
       appBar: AppBar(
         title: Text(
           'Medicine',
-          style: TextStyle(
+          style: const TextStyle(
             fontFamily: 'Poppins',
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -51,7 +51,7 @@ class _MedicineState extends State<Medicine> {
           ),
         ),
         backgroundColor: Colors.blue,
-          automaticallyImplyLeading: false// Replace with `customBlue` from your constant file
+        automaticallyImplyLeading: false,
       ),
       backgroundColor: Colors.white,
       body: Column(
@@ -63,23 +63,24 @@ class _MedicineState extends State<Medicine> {
               controller: searchController,
               decoration: InputDecoration(
                 hintText: 'Search by name',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
                 ),
               ),
-              onChanged: filterUsers, // Call filterUsers on text change
+              onChanged: filterUsers,
             ),
           ),
           // List of users
           Expanded(
             child: ListView.builder(
-              itemCount: 6,
+              itemCount: filteredUsers.length,
               itemBuilder: (BuildContext context, int index) {
+                final user = filteredUsers[index]; // Get current user
                 return Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Container(
-                    height: 180, // Increased height to accommodate the button
+                    height: 180,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
@@ -118,9 +119,9 @@ class _MedicineState extends State<Medicine> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      "Ayesha Salman",
-                                      style: TextStyle(
+                                    Text(
+                                      user['name']!,
+                                      style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black,
@@ -128,43 +129,34 @@ class _MedicineState extends State<Medicine> {
                                       ),
                                     ),
                                     const SizedBox(height: 5),
-                                    const Text(
-                                      "Online",
-                                      style: TextStyle(
+                                    Text(
+                                      user['subtitle']!,
+                                      style: const TextStyle(
                                         fontSize: 11,
                                         color: customBlue,
                                         fontFamily: 'Poppins',
                                       ),
                                     ),
                                     const SizedBox(height: 5),
-                                    RichText(
-                                      text: TextSpan(
-                                        text: 'Appointment: 10:00 AM To 11:00 AM ',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                          fontFamily: 'Poppins',
-                                        ),
-                                        children: const [
-                                          TextSpan(
-                                            text: '(Monday)',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.black,
-                                              fontFamily: 'Poppins',
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                                    const Text(
+                                      'Appointment: 10:00 AM To 11:00 AM (Monday)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                        fontFamily: 'Poppins',
                                       ),
                                     ),
-                                    SizedBox( height: 10,),
-                                    // View Report Button
+                                    const SizedBox(height: 10),
+                                    // Assign Button
                                     ElevatedButton(
                                       onPressed: () {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (context) => Addmedicinetopatient()),
+                                          MaterialPageRoute(
+                                            builder: (context) => Addmedicinetopatient(
+                                              appointmentId: user['appointmentId']!, // Pass unique appointmentId
+                                            ),
+                                          ),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -192,7 +184,6 @@ class _MedicineState extends State<Medicine> {
                               ),
                             ],
                           ),
-
                         ],
                       ),
                     ),

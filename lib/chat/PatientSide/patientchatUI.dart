@@ -63,7 +63,7 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
         backgroundColor: customBlue,
         shadowColor: customBlue.withOpacity(0.4),
         title: Text(
-          "Chat with ${widget.doctorName}",
+          "Chat with Doctor",
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,

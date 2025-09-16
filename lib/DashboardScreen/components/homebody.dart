@@ -189,7 +189,11 @@ class _HomebodyState extends State<Homebody> {
                   child: Homecards(
                     text: 'Medicine',
                     imagePath: 'assets/images/medicine.png',
-                    onpressed: () => Get.to(Medicinedetails()),
+                    onpressed: () => Get.to(
+                      Medicinedetails(
+                        appointmentId: appointment!.id, // pass the correct appointment ID here
+                      ),
+                    ),
                   ),
                 ),
               ),

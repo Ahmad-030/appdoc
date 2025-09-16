@@ -23,7 +23,7 @@ class AcceptedAppointmentController extends GetxController {
     fetchAcceptedAppointments();
 
     // 🔄 Refresh data every 15 seconds
-    _timer = Timer.periodic(const Duration(seconds:20), (_) {
+    _timer = Timer.periodic(const Duration(seconds:30), (_) {
       fetchAcceptedAppointments();
     });
   }

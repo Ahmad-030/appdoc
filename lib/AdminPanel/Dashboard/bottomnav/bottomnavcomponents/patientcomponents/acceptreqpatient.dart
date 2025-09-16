@@ -284,7 +284,12 @@ class Acceptreqpatient extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Addmedicinetopatient()),
+                  MaterialPageRoute(
+                    builder: (context) => Addmedicinetopatient(
+                      appointmentId:
+                          appointment.id, // <-- Pass the appointment ID here
+                    ),
+                  ),
                 );
               },
               child: const Text(

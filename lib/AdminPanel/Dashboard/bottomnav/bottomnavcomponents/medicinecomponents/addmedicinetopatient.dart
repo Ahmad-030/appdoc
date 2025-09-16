@@ -1,34 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:doctorappflutter/constant/constantfile.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Addmedicinetopatient extends StatefulWidget {
+  final String appointmentId; // Unique appointment ID
+
+  const Addmedicinetopatient({Key? key, required this.appointmentId}) : super(key: key);
+
   @override
-  State<StatefulWidget> createState() {
-    return MedState();
-  }
+  State<Addmedicinetopatient> createState() => _AddmedicinetopatientState();
 }
 
-class MedState extends State<Addmedicinetopatient> {
-  final List<Map<String, String>> assignedMedicines = [
-    {
-      'medicine': 'Paracetamol',
-      'description': 'Take after meals twice a day.',
-      'date': '2025-06-26',
-    },
-    {
-      'medicine': 'Cough Syrup',
-      'description': '10ml at night before sleep.',
-      'date': '2025-06-27',
-    },
-  ];
-
+class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
   final List<Map<String, TextEditingController>> _controllersList = [];
 
   @override
   void initState() {
     super.initState();
-    _addTextField();
+    _addTextField(); // Start with one empty text field
   }
 
   void _addTextField() {
@@ -57,6 +47,82 @@ class MedState extends State<Addmedicinetopatient> {
     super.dispose();
   }
 
+  /// Save all new medicines to Firebase under the appointment ID
+  Future<void> _saveMedicines() async {
+    final now = DateTime.now();
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (var controllerMap in _controllersList) {
+      final medicineName = controllerMap['medicine']?.text.trim();
+      final description = controllerMap['description']?.text.trim();
+
+      if (medicineName != null && medicineName.isNotEmpty) {
+        final docRef = FirebaseFirestore.instance
+            .collection('appointments')
+            .doc(widget.appointmentId)
+            .collection('medicines')
+            .doc(); // Auto-generated ID
+
+        batch.set(docRef, {
+          'medicine': medicineName,
+          'description': description ?? '',
+          'date': now.toIso8601String(),
+        });
+      }
+    }
+
+    try {
+      await batch.commit();
+
+      // Clear all text fields after saving
+      for (var controllers in _controllersList) {
+        controllers['medicine']?.clear();
+        controllers['description']?.clear();
+      }
+
+      // Add a fresh empty text field
+      if (_controllersList.isEmpty) _addTextField();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medicines saved successfully!')),
+      );
+    } catch (e) {
+      print('Error saving medicines: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save medicines.')),
+      );
+    }
+  }
+
+  /// Stream for real-time updates from Firestore
+  Stream<List<Map<String, dynamic>>> _assignedMedicinesStream() {
+    return FirebaseFirestore.instance
+        .collection('appointments')
+        .doc(widget.appointmentId)
+        .collection('medicines')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      // Convert docs to list
+      final medicines = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+
+      // Remove duplicates (by medicine name) and keep the last two
+      final uniqueMap = <String, Map<String, dynamic>>{};
+      for (var med in medicines) {
+        uniqueMap[med['medicine']] = med;
+      }
+
+      // Get last two
+      final lastTwo = uniqueMap.values.toList();
+      lastTwo.sort((a, b) => b['date'].compareTo(a['date'])); // Sort descending
+      return lastTwo.take(2).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,7 +145,7 @@ class MedState extends State<Addmedicinetopatient> {
         children: [
           /// Previously Assigned Section
           Text(
-            'Previously Assigned Medicines',
+            'Recently Assigned Medicines',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 18,
@@ -88,62 +154,78 @@ class MedState extends State<Addmedicinetopatient> {
           ),
           const SizedBox(height: 10),
 
-          if (assignedMedicines.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: const Center(
-                child: Text(
-                  'No medicines assigned yet.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontFamily: 'Poppins',
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _assignedMedicinesStream(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator(color: Colors.white));
+              }
+
+              final medicines = snapshot.data!;
+              if (medicines.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: const Center(
+                    child: Text(
+                      'No medicines assigned yet.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            )
-          else
-            ...assignedMedicines.map((med) {
-              return Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        med['medicine'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Poppins',
-                        ),
+                );
+              }
+
+              return Column(
+                children: medicines.map((med) {
+                  final date = DateTime.tryParse(med['date'] ?? '');
+                  final formattedDate =
+                  date != null ? '${date.day}-${date.month}-${date.year}' : '';
+                  return Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            med['medicine'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            med['description'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontFamily: 'Poppins',
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Date: $formattedDate',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        med['description'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontFamily: 'Poppins',
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Date: ${med['date']}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
+          ),
 
           const SizedBox(height: 25),
           Divider(color: Colors.white54),
@@ -159,6 +241,7 @@ class MedState extends State<Addmedicinetopatient> {
             ),
           ),
           const SizedBox(height: 10),
+
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -225,9 +308,7 @@ class MedState extends State<Addmedicinetopatient> {
           const SizedBox(height: 20),
 
           ElevatedButton(
-            onPressed: () {
-              // Save medicines to backend here
-            },
+            onPressed: _saveMedicines,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -241,7 +322,7 @@ class MedState extends State<Addmedicinetopatient> {
                 fontSize: 16,
               ),
             ),
-          )
+          ),
         ],
       ),
     );
