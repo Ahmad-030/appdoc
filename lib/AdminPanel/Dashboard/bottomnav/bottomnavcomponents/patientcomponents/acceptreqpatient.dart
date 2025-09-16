@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 
+import '../reportcomponents/Report_display.dart';
 import '../../../../../Model/appoinment.dart';
 import '../../../../../constant/constantfile.dart';
 import '../../../../controller/acceptedAppointmentController.dart';
@@ -303,7 +304,14 @@ class Acceptreqpatient extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PatientReportsListView(
+                      appointmentId: appointment.id, // ✅ Firestore document id
+                    ),
+                  ),
+                );
               },
               child: const Text(
                 "View Report",
