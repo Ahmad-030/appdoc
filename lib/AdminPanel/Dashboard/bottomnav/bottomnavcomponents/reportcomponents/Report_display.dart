@@ -6,16 +6,20 @@ import 'package:flutter/material.dart';
 // Patient Report Model
 // =============================
 class PatientReport {
+  final String id; // 🔹 Firestore document ID (needed for delete)
   final String title;
   final String? imageUrl;
 
   PatientReport({
+    required this.id,
     required this.title,
     this.imageUrl,
   });
 
-  factory PatientReport.fromMap(Map<String, dynamic> data) {
+  factory PatientReport.fromDoc(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return PatientReport(
+      id: doc.id,
       title: data['title'] ?? 'Untitled Report',
       imageUrl: data['imageUrl'],
     );
@@ -26,7 +30,7 @@ class PatientReport {
 // Doctor: View Patient Reports
 // =============================
 class PatientReportsListView extends StatelessWidget {
-  final String appointmentId; // 🔹 Doctor sees reports by appointment/patient ID
+  final String appointmentId;
 
   const PatientReportsListView({Key? key, required this.appointmentId})
       : super(key: key);
@@ -73,7 +77,7 @@ class PatientReportsListView extends StatelessWidget {
           }
 
           final reports = snapshot.data!.docs
-              .map((doc) => PatientReport.fromMap(doc.data() as Map<String, dynamic>))
+              .map((doc) => PatientReport.fromDoc(doc))
               .toList();
 
           return ListView.builder(
@@ -86,7 +90,10 @@ class PatientReportsListView extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ReportDetailView(report: report),
+                      builder: (_) => ReportDetailView(
+                        report: report,
+                        appointmentId: appointmentId,
+                      ),
                     ),
                   );
                 },
@@ -146,8 +153,33 @@ class PatientReportsListView extends StatelessWidget {
 // =============================
 class ReportDetailView extends StatelessWidget {
   final PatientReport report;
+  final String appointmentId;
 
-  const ReportDetailView({Key? key, required this.report}) : super(key: key);
+  const ReportDetailView({
+    Key? key,
+    required this.report,
+    required this.appointmentId,
+  }) : super(key: key);
+
+  Future<void> _deleteReport(BuildContext context) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("appointments")
+          .doc(appointmentId)
+          .collection("reports")
+          .doc(report.id)
+          .delete();
+
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Report deleted successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to delete: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,6 +197,36 @@ class ReportDetailView extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text("Delete Report"),
+                  content: const Text(
+                      "Are you sure you want to delete this report?"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text("Delete",
+                          style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                _deleteReport(context);
+              }
+            },
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -188,9 +250,8 @@ class ReportDetailView extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => FullScreenImageView(
-                        imageUrl: report.imageUrl!,
-                      ),
+                      builder: (_) =>
+                          FullScreenImageView(imageUrl: report.imageUrl!),
                     ),
                   );
                 }
@@ -253,35 +314,6 @@ class ReportDetailView extends StatelessWidget {
                 ],
               ),
             ),
-
-            const Spacer(),
-
-            if (report.imageUrl != null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            FullScreenImageView(imageUrl: report.imageUrl!),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    "See Full View",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

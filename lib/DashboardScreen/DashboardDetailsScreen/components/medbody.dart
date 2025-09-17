@@ -33,10 +33,13 @@ class _MedbodyState extends State<Medbody> {
           .doc(widget.appointmentId)
           .collection('medicines')
           .orderBy('date', descending: true) // most recent first
-          .limit(2) // only last 2 medicines
           .get();
 
-      final medicines = snapshot.docs.map((doc) => doc.data()).toList();
+      final medicines = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // keep the document ID for delete
+        return data;
+      }).toList();
 
       setState(() {
         medlist = medicines.cast<Map<String, dynamic>>();
@@ -47,6 +50,23 @@ class _MedbodyState extends State<Medbody> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  /// Delete a medicine by docId
+  Future<void> _deleteMedicine(String docId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('appointments')
+          .doc(widget.appointmentId)
+          .collection('medicines')
+          .doc(docId)
+          .delete();
+
+      // Refresh the list after delete
+      _fetchMedicines();
+    } catch (e) {
+      print('Error deleting medicine: $e');
     }
   }
 
@@ -116,33 +136,47 @@ class _MedbodyState extends State<Medbody> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    medicine['medicine'] ?? '',
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(2.0),
+                  /// Medicine title with delete button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
                         child: Text(
-                          medicine['description'] ?? '',
-                          textAlign: TextAlign.justify,
+                          medicine['medicine'] ?? '',
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             color: Colors.black,
-                            fontSize: 14,
-                            height: 1.5,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteMedicine(medicine['id']),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+
+                  /// Description
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        medicine['description'] ?? '',
+                        textAlign: TextAlign.justify,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          color: Colors.black,
+                          fontSize: 14,
+                          height: 1.5,
                         ),
                       ),
                     ),
                   ),
+
+                  /// Date
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Text(

@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 class Addmedicinetopatient extends StatefulWidget {
   final String appointmentId; // Unique appointment ID
 
-  const Addmedicinetopatient({Key? key, required this.appointmentId}) : super(key: key);
+  const Addmedicinetopatient({Key? key, required this.appointmentId})
+      : super(key: key);
 
   @override
   State<Addmedicinetopatient> createState() => _AddmedicinetopatientState();
@@ -100,26 +101,18 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
         .collection('appointments')
         .doc(widget.appointmentId)
         .collection('medicines')
-        .orderBy('date', descending: true)
+        .orderBy('date', descending: true) // ✅ newest first
         .snapshots()
         .map((snapshot) {
-      // Convert docs to list
+      // Convert Firestore docs into List<Map>
       final medicines = snapshot.docs.map((doc) {
         final data = doc.data();
-        data['id'] = doc.id;
+        data['id'] = doc.id; // keep Firestore doc id
         return data;
       }).toList();
 
-      // Remove duplicates (by medicine name) and keep the last two
-      final uniqueMap = <String, Map<String, dynamic>>{};
-      for (var med in medicines) {
-        uniqueMap[med['medicine']] = med;
-      }
-
-      // Get last two
-      final lastTwo = uniqueMap.values.toList();
-      lastTwo.sort((a, b) => b['date'].compareTo(a['date'])); // Sort descending
-      return lastTwo.take(2).toList();
+      // ✅ Take the last two (new + previous)
+      return medicines.take(2).toList();
     });
   }
 
@@ -158,7 +151,8 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
             stream: _assignedMedicinesStream(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator(color: Colors.white));
+                return const Center(
+                    child: CircularProgressIndicator(color: Colors.white));
               }
 
               final medicines = snapshot.data!;
@@ -184,7 +178,8 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
                   final formattedDate =
                   date != null ? '${date.day}-${date.month}-${date.year}' : '';
                   return Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     child: Padding(
@@ -272,7 +267,8 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
                               controller: _controllersList[index]['medicine'],
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                prefixIcon: Icon(Icons.medical_information, color: Colors.blue),
+                                prefixIcon: Icon(Icons.medical_information,
+                                    color: Colors.blue),
                                 hintText: 'Medicine',
                               ),
                             ),
@@ -280,7 +276,8 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
                               controller: _controllersList[index]['description'],
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                prefixIcon: Icon(Icons.description, color: Colors.blue),
+                                prefixIcon: Icon(Icons.description,
+                                    color: Colors.blue),
                                 hintText: 'Description',
                               ),
                             ),
@@ -290,7 +287,9 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
                     ),
                     IconButton(
                       icon: Icon(
-                        index == _controllersList.length - 1 ? Icons.add : Icons.delete,
+                        index == _controllersList.length - 1
+                            ? Icons.add
+                            : Icons.delete,
                         color: Colors.white,
                       ),
                       onPressed: () {
@@ -312,7 +311,8 @@ class _AddmedicinetopatientState extends State<Addmedicinetopatient> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
               'Save Medicines',

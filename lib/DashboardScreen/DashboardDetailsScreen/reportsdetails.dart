@@ -4,14 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ReportsDetails extends StatelessWidget {
-  final String appointmentId; // stays constant
+  final String appointmentId;
   ReportsDetails({super.key, required this.appointmentId});
-
-  // ensure we don't accidentally create duplicate controllers
-  final Reportcontroller controller = Get.isRegistered<Reportcontroller>()
-      ? Get.find<Reportcontroller>()
-      : Get.put(Reportcontroller());
-
+  final ReportController controller = Get.isRegistered<ReportController>()
+      ? Get.find<ReportController>()
+      : Get.put(ReportController());
   final TextEditingController titleController = TextEditingController();
 
   @override
@@ -139,31 +136,31 @@ class ReportsDetails extends StatelessWidget {
             // ----------------- Submit button -----------------
             Container(
               width: double.infinity,
-              padding: EdgeInsets.only(
-                  bottom: verticalPadding, left: 15, right: 15),
+              padding:
+              EdgeInsets.only(bottom: verticalPadding, left: 15, right: 15),
               child: Obx(
                     () => ElevatedButton(
                   onPressed: controller.isUploading.value
-                      ? null // disabled while uploading
+                      ? null
                       : () async {
-                    // await the upload and get result
+                    if (titleController.text.trim().isEmpty) {
+                      Get.snackbar("Error", "Please enter a report title");
+                      return;
+                    }
+                    if (controller.selectedImage.value == null) {
+                      Get.snackbar("Error",
+                          "Please select a report image first");
+                      return;
+                    }
+
                     bool ok = await controller.uploadReport(
                       appointmentId: appointmentId,
                       reportTitle: titleController.text.trim(),
                     );
 
-                    // if success, clear inputs and go to home (first route)
                     if (ok) {
                       titleController.clear();
-                      controller.selectedImage.value = null;
-
-                      // navigate back to home screen (first route)
-                      // this pops everything and shows the first route in stack
-                      Navigator.of(context)
-                          .popUntil((route) => route.isFirst);
-
-                      // alternative using GetX to go to a specific screen:
-                      // Get.offAll(() => HomeBody()); // <-- if you have HomeBody widget
+                      Navigator.pop(context);
                     }
                   },
                   style: ElevatedButton.styleFrom(
