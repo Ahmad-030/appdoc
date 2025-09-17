@@ -24,6 +24,11 @@ class Acceptreqpatient extends StatelessWidget {
         Obx(() {
           final appointments = controller.appointments;
 
+          // Sort appointments by date descending
+          final sortedAppointments = appointments.toList()
+            ..sort((a, b) => DateTime.parse(b.appointmentDate)
+                .compareTo(DateTime.parse(a.appointmentDate)));
+
           // Loading shimmer
           if (controller.isLoading.value) {
             return ListView.builder(
@@ -46,7 +51,7 @@ class Acceptreqpatient extends StatelessWidget {
           }
 
           // No appointments
-          if (appointments.isEmpty) {
+          if (sortedAppointments.isEmpty) {
             return const Center(
               child: Text(
                 'No accepted appointments found.',
@@ -57,16 +62,17 @@ class Acceptreqpatient extends StatelessWidget {
 
           // Appointment list
           return ListView.builder(
-            itemCount: appointments.length,
+            itemCount: sortedAppointments.length,
             itemBuilder: (BuildContext context, int index) {
-              final appointment = appointments[index];
+              final appointment = sortedAppointments[index];
               final date = DateTime.parse(appointment.appointmentDate);
               final dayName = DateFormat('EEEE').format(date);
 
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: GestureDetector(
-                  onTap: () => _showPatientDetailsDialog(context, appointment),
+                  onTap: () =>
+                      _showPatientDetailsDialog(context, appointment),
                   child: Container(
                     height: 155,
                     decoration: BoxDecoration(
@@ -91,7 +97,8 @@ class Acceptreqpatient extends StatelessWidget {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(15),
                               image: const DecorationImage(
-                                image: AssetImage('assets/images/doctorimage.jpg'),
+                                image: AssetImage(
+                                    'assets/images/doctorimage.jpg'),
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -198,7 +205,8 @@ class Acceptreqpatient extends StatelessWidget {
     return time.format(Get.context!);
   }
 
-  void _showPatientDetailsDialog(BuildContext context, Appointment appointment) {
+  void _showPatientDetailsDialog(
+      BuildContext context, Appointment appointment) {
     final date = DateTime.parse(appointment.appointmentDate);
     final dayName = DateFormat('EEEE').format(date);
 
@@ -287,8 +295,7 @@ class Acceptreqpatient extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => Addmedicinetopatient(
-                      appointmentId:
-                          appointment.id, // <-- Pass the appointment ID here
+                      appointmentId: appointment.id,
                     ),
                   ),
                 );
@@ -308,7 +315,7 @@ class Acceptreqpatient extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => PatientReportsListView(
-                      appointmentId: appointment.id, // ✅ Firestore document id
+                      appointmentId: appointment.id,
                     ),
                   ),
                 );
