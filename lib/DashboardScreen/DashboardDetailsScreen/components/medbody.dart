@@ -32,14 +32,15 @@ class _MedbodyState extends State<Medbody> {
           .collection('appointments')
           .doc(widget.appointmentId)
           .collection('medicines')
-          .orderBy('date', descending: true) // most recent first
+          .orderBy('date', descending: true)
           .get();
 
       final medicines = snapshot.docs.map((doc) {
         final data = doc.data();
-        data['id'] = doc.id; // keep the document ID for delete
+        data['id'] = doc.id; // keep the document ID
+        data['deleted'] = data['deleted'] ?? false; // default if missing
         return data;
-      }).toList();
+      }).where((m) => m['deleted'] == false).toList(); // filter here instead
 
       setState(() {
         medlist = medicines.cast<Map<String, dynamic>>();
@@ -53,7 +54,7 @@ class _MedbodyState extends State<Medbody> {
     }
   }
 
-  /// Delete a medicine by docId
+  /// Mark a medicine as deleted (hide only from patient side)
   Future<void> _deleteMedicine(String docId) async {
     try {
       await FirebaseFirestore.instance
@@ -61,12 +62,14 @@ class _MedbodyState extends State<Medbody> {
           .doc(widget.appointmentId)
           .collection('medicines')
           .doc(docId)
-          .delete();
+          .update({
+        'deleted': true, // 👈 instead of delete, just mark as deleted
+      });
 
-      // Refresh the list after delete
+      // Refresh the list after marking deleted
       _fetchMedicines();
     } catch (e) {
-      print('Error deleting medicine: $e');
+      print('Error marking medicine as deleted: $e');
     }
   }
 
@@ -114,9 +117,19 @@ class _MedbodyState extends State<Medbody> {
         ),
         itemBuilder: (context, index) {
           final medicine = medlist[index];
-          final date = DateTime.tryParse(medicine['date'] ?? '');
-          final formattedDate =
-          date != null ? '${date.year}-${date.month}-${date.day}' : '';
+
+          /// handle Firestore Timestamp or String date
+          final dateField = medicine['date'];
+          DateTime? date;
+          if (dateField is Timestamp) {
+            date = dateField.toDate();
+          } else if (dateField is String) {
+            date = DateTime.tryParse(dateField);
+          }
+
+          final formattedDate = date != null
+              ? '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'
+              : '';
 
           return Container(
             decoration: BoxDecoration(

@@ -31,7 +31,10 @@ class DoctorChatController extends GetxController {
       "seen": false,
     });
 
-    updateLastMessageTime(appointmentId, ChatMessage(senderId: senderId, text: text, timestamp: now));
+    updateLastMessageTime(
+      appointmentId,
+      ChatMessage(senderId: senderId, text: text, timestamp: now),
+    );
   }
 
   // Stream messages
@@ -71,13 +74,19 @@ class DoctorChatController extends GetxController {
 
         final updated = data.entries.map((e) {
           final a = Map<String, dynamic>.from(e.value);
+
+          // ✅ skip chats deleted by doctor
+          if (a["deletedByDoctor"] == true) {
+            return null;
+          }
+
           return PatientAppointment(
             appointmentId: e.key,
             patientName: "${a['patientFirstName']} ${a['patientLastName']}",
             AppointmentId: e.key,
             lastMessageTime: DateTime.fromMillisecondsSinceEpoch(0),
           );
-        }).toList();
+        }).whereType<PatientAppointment>().toList();
 
         appointments.assignAll(updated);
 
@@ -93,9 +102,17 @@ class DoctorChatController extends GetxController {
               final msg = Map<String, dynamic>.from(msgEvent.snapshot.value as Map);
               final time = DateTime.tryParse(msg["timestamp"] ?? "");
               if (time != null) {
-                updateLastMessageTime(appt.appointmentId,
-                    ChatMessage(senderId: msg["senderId"], text: msg["text"], timestamp: time));
-                unreadStatus[appt.appointmentId] = msg["seen"] == false && msg["senderId"] != doctorId;
+                updateLastMessageTime(
+                  appt.appointmentId,
+                  ChatMessage(
+                    senderId: msg["senderId"],
+                    text: msg["text"],
+                    timestamp: time,
+                  ),
+                );
+
+                unreadStatus[appt.appointmentId] =
+                    msg["seen"] == false && msg["senderId"] != doctorId;
                 unreadStatus.refresh();
               }
             }
@@ -123,9 +140,12 @@ class DoctorChatController extends GetxController {
     appointments.refresh();
   }
 
-  // Delete chat
+  // Delete chat (doctor side only)
   Future<void> deleteChat(String appointmentId) async {
-    await _db.child("chats/$appointmentId").remove();
+    await _db.child("appointments/$appointmentId").update({
+      "deletedByDoctor": true,   // 👈 just mark instead of removing chat
+    });
+
     lastMessages.remove(appointmentId);
     unreadStatus.remove(appointmentId);
   }

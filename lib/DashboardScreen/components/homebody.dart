@@ -88,8 +88,7 @@ class _HomebodyState extends State<Homebody> {
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border:
-                  Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -161,7 +160,6 @@ class _HomebodyState extends State<Homebody> {
   }
 
   Widget _homeBody(double screenHeight, double screenWidth, bool accepted) {
-    // Pick the first accepted appointment dynamically
     final appointment = appointmentController.appointments.isNotEmpty
         ? appointmentController.appointments.first
         : null;
@@ -173,33 +171,61 @@ class _HomebodyState extends State<Homebody> {
           flex: 1,
           child: Row(
             children: [
+              // ---------------- Reports Button ----------------
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.all(screenWidth * 0.04),
                   child: Homecards(
                     text: 'Reports',
                     imagePath: 'assets/images/result.png',
-                    onpressed: () => Get.to(() => ReportsDetails(appointmentId: appointment!.id)),
+                    onpressed: (appointment != null &&
+                        appointmentController.isAccepted.value)
+                        ? () => Get.to(
+                          () => ReportsDetails(appointmentId: appointment.id),
+                    )
+                        : () {
+                      Get.snackbar(
+                        "Not available",
+                        "Reports are available only after your appointment is accepted.",
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.redAccent,
+                        colorText: Colors.white,
+                      );
+                    },
                   ),
                 ),
               ),
+
+              // ---------------- Medicine Button ----------------
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.all(screenWidth * 0.04),
                   child: Homecards(
                     text: 'Medicine',
                     imagePath: 'assets/images/medicine.png',
-                    onpressed: () => Get.to(
-                      Medicinedetails(
-                        appointmentId: appointment!.id, // pass the correct appointment ID here
+                    onpressed: (appointment != null &&
+                        appointmentController.isAccepted.value)
+                        ? () => Get.to(
+                          () => Medicinedetails(
+                        appointmentId: appointment.id,
                       ),
-                    ),
+                    )
+                        : () {
+                      Get.snackbar(
+                        "Not available",
+                        "Medicine details will be available once your appointment is accepted.",
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.redAccent,
+                        colorText: Colors.white,
+                      );
+                    },
                   ),
                 ),
               ),
             ],
           ),
         ),
+
         Expanded(
           flex: 3,
           child: SingleChildScrollView(
@@ -223,6 +249,8 @@ class _HomebodyState extends State<Homebody> {
                     child: Doctor(),
                   ),
                   SizedBox(height: screenHeight * 0.015),
+
+                  // ---------------- Chat / About Doctor ----------------
                   if (appointment != null)
                     CustomContainer(
                       onpressed: () {

@@ -1,3 +1,5 @@
+import 'package:doctorappflutter/DashboardScreen/bottomnavscreens/homescreens.dart';
+import 'package:doctorappflutter/DashboardScreen/userbottomnav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // ✅ Required for status bar control
 import 'package:get/get.dart';
@@ -19,7 +21,7 @@ class PendingApprovalScreen extends StatelessWidget {
 
     return Obx(() {
       if (controller.isAccepted.value) {
-        Future.microtask(() => Get.offAll(() => Homebody()));
+        Future.microtask(() => Get.offAll(() => Userbottomnav()));
       }
 
       return Scaffold(
